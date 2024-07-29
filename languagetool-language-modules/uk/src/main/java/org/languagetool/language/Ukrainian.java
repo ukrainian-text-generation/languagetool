@@ -1,6 +1,6 @@
-/* LanguageTool, a natural language style checker 
+/* LanguageTool, a natural language style checker
  * Copyright (C) 2007 Daniel Naber (http://www.danielnaber.de)
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -25,6 +25,7 @@ import org.languagetool.broker.ResourceDataBroker;
 import org.languagetool.rules.*;
 import org.languagetool.rules.spelling.SpellingCheckRule;
 import org.languagetool.rules.uk.*;
+import org.languagetool.rules.dependency.DependencyBasedRule;
 import org.languagetool.synthesis.Synthesizer;
 import org.languagetool.synthesis.uk.UkrainianSynthesizer;
 import org.languagetool.tagging.Tagger;
@@ -37,6 +38,7 @@ import org.languagetool.tokenizers.uk.UkrainianWordTokenizer;
 import java.io.IOException;
 import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class Ukrainian extends Language {
   public static final Pattern IGNORED_CHARS = Pattern.compile("[\u00AD\u0301]");
@@ -49,7 +51,25 @@ public class Ukrainian extends Language {
       "grammar-punctuation.xml"
       );
 
+  private static final List<String> DEPENDENCY_BASED_RULE_FILES = Arrays.asList(
+    "grammar-dependency-based.xml"
+  );
+
   public static final Ukrainian DEFAULT_VARIANT = new Ukrainian();
+
+  private static final Map<String, Pattern> INFLECTION_TO_REGEX_MAP = new HashMap<>();
+
+  static {
+    INFLECTION_TO_REGEX_MAP.put("pos", Pattern.compile("(^|:)(?<pos>noun|verb|adj|adjp|adv|advp|prep|conj|part|intj|numr|noninfl|onomat)($|:)"));
+    INFLECTION_TO_REGEX_MAP.put("case", Pattern.compile("(^|:)(?<case>v_naz|v_rod|v_dav|v_zna|v_oru|v_mis|v_kly|nv|ns)($|:)"));
+    INFLECTION_TO_REGEX_MAP.put("number", Pattern.compile("(^|:)(?<number>[ps])($|:)"));
+    INFLECTION_TO_REGEX_MAP.put("gender", Pattern.compile("(^|:)(?<gender>[mfn])($|:)"));
+    INFLECTION_TO_REGEX_MAP.put("animacy", Pattern.compile("(^|:)(?<animacy>anim|inanim|unanim)($|:)"));
+    INFLECTION_TO_REGEX_MAP.put("tense", Pattern.compile("(^|:)(?<tense>futr|past|pres)($|:)"));
+//    INFLECTION_TO_REGEX_MAP.put("form", Pattern.compile("(^|:)(?<form>imperf|perf|rev|inf|impr|short|long|compb|compc|comps|actv|pasv)($|:)"));
+    INFLECTION_TO_REGEX_MAP.put("person", Pattern.compile("(^|:)(?<person>impers|1|2|3)($|:)"));
+    INFLECTION_TO_REGEX_MAP.put("type", Pattern.compile("(^|:)(?<type>pers|refl|pos|dem|def|int|rel|neg|ind|gen|emph|subord|coord)($|:)"));
+  }
 
   public Ukrainian() {
   }
@@ -155,7 +175,7 @@ public class Ukrainian extends Language {
 
 
         // medium priority rules
-        
+
         // TODO: does not handle !.. and ?..
         //            new DoublePunctuationRule(messages),
         morfologikSpellerRule,
@@ -195,6 +215,22 @@ public class Ukrainian extends Language {
   }
 
   @Override
+  public List<String> getDependencyBasedRuleFileNames() {
+
+    String dirBase = JLanguageTool.getDataBroker().getRulesDir() + "/" + getShortCode() + "/";
+
+    return DEPENDENCY_BASED_RULE_FILES.stream()
+      .map(fileName -> dirBase + fileName)
+      .collect(Collectors.toList());
+  }
+
+  @Override
+  public Map<String, Pattern> getInflectionToRegexMap() {
+
+    return INFLECTION_TO_REGEX_MAP;
+  }
+
+  @Override
   public LanguageMaintainedState getMaintainedState() {
     return LanguageMaintainedState.ActivelyMaintained;
   }
@@ -210,7 +246,7 @@ public class Ukrainian extends Language {
   public String getClosingDoubleQuote() {
     return "»";
   }
-  
+
   /** @since 5.1 */
   @Override
   public String getOpeningSingleQuote() {
@@ -222,11 +258,10 @@ public class Ukrainian extends Language {
   public String getClosingSingleQuote() {
     return "’";
   }
-  
+
   /** @since 5.1 */
   @Override
   public boolean isAdvancedTypographyEnabled() {
     return false;  //DISABLED!
   }
-
 }

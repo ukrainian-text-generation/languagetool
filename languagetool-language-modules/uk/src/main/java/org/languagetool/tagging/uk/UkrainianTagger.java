@@ -1,6 +1,6 @@
-/* LanguageTool, a natural language style checker 
+/* LanguageTool, a natural language style checker
  * Copyright (C) 2006 Daniel Naber (http://www.danielnaber.de)
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -39,10 +39,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-/** 
+/**
  * Ukrainian part-of-speech tagger.
  * See README for details, the POS tagset is described in tagset.txt
- * 
+ *
  * @author Andriy Rysin
  */
 public class UkrainianTagger extends BaseTagger {
@@ -96,7 +96,7 @@ public class UkrainianTagger extends BaseTagger {
         String right = word.substring(dashIdx+1);
         ordinal = LetterEndingForNumericHelper.isPossibleAdjAdjEnding(left, right);
       }
-      
+
       if( dashIdx == -1 || ordinal ) {
         List<AnalyzedToken> additionalTaggedTokens = new ArrayList<>();
         additionalTaggedTokens.add(new AnalyzedToken(word, "number:latin:bad", word));
@@ -122,7 +122,7 @@ public class UkrainianTagger extends BaseTagger {
       if (newAnalyzedTokens.size() > 0)
         return new ArrayList<>(newAnalyzedTokens);
     }
-    
+
     if ( word.startsWith("#") && HASHTAG.matcher(word).matches() ) {
       List<AnalyzedToken> additionalTaggedTokens = new ArrayList<>();
       additionalTaggedTokens.add(new AnalyzedToken(word, IPOSTag.hashtag.getText(), word));
@@ -164,7 +164,7 @@ public class UkrainianTagger extends BaseTagger {
     }
 
     word = Ukrainian.IGNORED_CHARS.matcher(word).replaceAll("");
-    
+
     if ( word.length() >= 3 && word.indexOf('-') > 0 ) {
 
       // екс-«депутат»
@@ -186,22 +186,22 @@ public class UkrainianTagger extends BaseTagger {
         return new ArrayList<>();
       }
     }
-    
+
     return compoundTagger.guessOtherTags(word);
   }
 
   @Override
   protected List<AnalyzedToken> getAnalyzedTokens(String word) {
-    
+
     if( word.indexOf('`') > 0 ) {
       word = word.replace('`', '\'');
     }
-    
+
     List<AnalyzedToken> tokens = super.getAnalyzedTokens(word);
 
     if( word.length() < 2 )
       return tokens;
-    
+
     if( tokens.get(0).hasNoTag() ) {
       String origWord = word;
 
@@ -233,7 +233,7 @@ public class UkrainianTagger extends BaseTagger {
         }
 
 //        String lowerWord = word.toLowerCase();
-        
+
         // try г instead of ґ
         else if( word.contains("ґ") || word.contains("Ґ") ) {
           tokens = convertTokens(tokens, word, "ґ", "г", ":alt");
@@ -284,7 +284,7 @@ public class UkrainianTagger extends BaseTagger {
                 }
               }
             }
-            if( tokens.get(0).hasNoTag() 
+            if( tokens.get(0).hasNoTag()
                 && word.contains("[") && word.contains("]")
                 && UkrainianWordTokenizer.WORDS_WITH_BRACKETS_PATTERN.matcher(word).find() ) {
               String adjustedWord = word.replace("[", "").replace("]", "");
@@ -331,7 +331,7 @@ public class UkrainianTagger extends BaseTagger {
         }
       }
     }
-    
+
     // бл*ть, нах#й
     // приголосні: на#уй
 //    if( word.matches(".*[*#].*") ) {
@@ -392,14 +392,14 @@ public class UkrainianTagger extends BaseTagger {
 
     List<AnalyzedToken> newTokens = getAdjustedAnalyzedTokens(word, adjustedWord, null, additionalTag,
         (lemma) -> lemma.replace(dictStr, str));
-    
+
     if( newTokens.isEmpty() )
         return origTokens;
 
     return newTokens;
   }
 
-  private List<AnalyzedToken> getAdjustedAnalyzedTokens(String word, String adjustedWord, Pattern posTagRegex, 
+  private List<AnalyzedToken> getAdjustedAnalyzedTokens(String word, String adjustedWord, Pattern posTagRegex,
       String additionalTag, UnaryOperator<String> lemmaFunction) {
 
     List<AnalyzedToken> newTokens = super.getAnalyzedTokens(adjustedWord);
@@ -415,7 +415,7 @@ public class UkrainianTagger extends BaseTagger {
 
       if( adjustedWord.equals(analyzedToken.getToken()) // filter out tokens with accents etc with null pos tag
           && (posTagRegex == null || posTagRegex.matcher(posTag).matches()) ) {
-        
+
         String lemma = analyzedToken.getLemma();
         if( lemmaFunction != null ) {
           lemma = lemmaFunction.apply(lemma);

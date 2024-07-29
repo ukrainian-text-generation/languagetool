@@ -212,6 +212,7 @@
 				<xs:choice>
 					<xs:element ref="pattern" />
 					<xs:element ref="regexp" />
+                    <xs:element ref="dependency" />
 				</xs:choice>
 				<xs:element ref="filter" minOccurs="0" maxOccurs="1" />
 				<xs:element ref="message" />
@@ -409,5 +410,15 @@
 			</xs:restriction>
 		</xs:simpleType>
 	</xs:attribute>
+
+	<xs:element name="dependency">
+		<xs:complexType>
+			<xs:choice maxOccurs="unbounded">
+				<xs:element name="query" type="xs:string"/>
+				<xs:element name="validation" type="xs:string"/>
+				<xs:element name="correction" type="xs:string"/>
+			</xs:choice>
+		</xs:complexType>
+	</xs:element>
 
 </xs:schema>

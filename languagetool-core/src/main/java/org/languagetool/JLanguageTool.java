@@ -34,6 +34,7 @@ import org.languagetool.markup.TextPart;
 import org.languagetool.rules.*;
 import org.languagetool.rules.patterns.*;
 import org.languagetool.rules.spelling.SpellingCheckRule;
+import org.languagetool.tagging.postprocessor.TaggingPostProcessor;
 import org.languagetool.tools.LoggingTools;
 import org.languagetool.tools.LtThreadPoolFactory;
 import org.languagetool.tools.TelemetryProvider;
@@ -314,6 +315,12 @@ public class JLanguageTool {
         // use the old false friends, which always match, not depending on context
         activateDefaultFalseFriendRules();
       }
+
+      if (language.isDependencyParsingEnabled()) {
+
+        activateDependencyParsingRules();
+      }
+
       updateOptionalLanguageModelRules(null); // start out with rules without language model
     } catch (Exception e) {
       throw new RuntimeException("Could not activate rules", e);
@@ -636,6 +643,11 @@ public class JLanguageTool {
     }
     List<Rule> transformed = transformPatternRules(patternRules, language);
     userRules.addAll(transformed);
+  }
+
+  private void activateDependencyParsingRules() {
+
+    userRules.addAll(language.getDependencyBasedRules());
   }
 
   private List<Rule> transformPatternRules(List<AbstractPatternRule> patternRules, Language lang) {
@@ -1646,7 +1658,8 @@ public class JLanguageTool {
     List<String> tokens = language.getWordTokenizer().tokenize(sentence);
     Map<Integer, CleanToken> softHyphenTokens = replaceSoftHyphens(tokens);
 
-    List<AnalyzedTokenReadings> aTokens = language.getTagger().tag(tokens);
+    List<AnalyzedTokenReadings> aTokens = postProcess(language.getTagger().tag(tokens), language);
+
     if (language.getChunker() != null) {
       language.getChunker().addChunkTags(aTokens);
     }
@@ -1697,6 +1710,14 @@ public class JLanguageTool {
       tokenArray[lastToken].setParagraphEnd();
     }
     return new AnalyzedSentence(tokenArray);
+  }
+
+  private List<AnalyzedTokenReadings> postProcess(final List<AnalyzedTokenReadings> tokens, Language language) {
+
+    return language.getTaggingPostProcessors().stream()
+      .reduce(tokens,
+        (List<AnalyzedTokenReadings> res, TaggingPostProcessor processor) -> processor.postProcess(res),
+        (previousList, processedList) -> processedList);
   }
 
   private Map<Integer, CleanToken> replaceSoftHyphens(List<String> tokens) {

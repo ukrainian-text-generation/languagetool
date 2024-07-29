@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet type="text/xsl" href="../../../../../../../../../languagetool-core/src/main/resources/org/languagetool/rules/print.xsl" title="Pretty print" ?>
+<?xml-stylesheet type="text/css" href="../../../../../../../../../languagetool-core/src/main/resources/org/languagetool/rules/rules.css" title="Easy editing stylesheet" ?>
+
+
+<rules lang="uk" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:noNamespaceSchemaLocation="../../../../../../../../../languagetool-core/src/main/resources/org/languagetool/rules/rules.xsd">
+    <category id="DEPENDENCY_BASED_RULES" name="Dependency based rules">
+        <rule id="TEST" name="test">
+            <dependency>
+                <query>token1->[nsubj]->token2</query>
+                <validation>token1_gender == token2_gender</validation>
+                <correction>token1_gender = token2_gender</correction>
+            </dependency>
+            <message>Test message</message>
+            <example>Test example</example>
+        </rule>
+    </category>
+</rules>

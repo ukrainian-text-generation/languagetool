@@ -20,6 +20,7 @@ package org.languagetool;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.languagetool.tagging.DependencyParsingInfo;
 
 import java.util.Objects;
 
@@ -37,6 +38,7 @@ public final class AnalyzedToken {
 
   private boolean isWhitespaceBefore;
   private boolean hasNoPOSTag;
+  private DependencyParsingInfo dependencyParsingInfo;
 
   public AnalyzedToken(String token, String posTag, String lemma) {
     this.token = Objects.requireNonNull(token, "token cannot be null");
@@ -149,4 +151,11 @@ public final class AnalyzedToken {
         && Objects.equals(isWhitespaceBefore, other.isWhitespaceBefore);
   }
 
+  public DependencyParsingInfo getDependencyParsingInfo() {
+    return dependencyParsingInfo;
+  }
+
+  public void setDependencyParsingInfo(DependencyParsingInfo dependencyParsingInfo) {
+    this.dependencyParsingInfo = dependencyParsingInfo;
+  }
 }

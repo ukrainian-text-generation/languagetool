@@ -18,6 +18,7 @@
  */
 package org.languagetool;
 
+import lombok.SneakyThrows;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.languagetool.broker.ResourceDataBroker;
@@ -27,7 +28,10 @@ import org.languagetool.languagemodel.LanguageModel;
 import org.languagetool.languagemodel.LuceneLanguageModel;
 import org.languagetool.markup.AnnotatedText;
 import org.languagetool.rules.*;
+import org.languagetool.rules.dependency.DependencyBasedRule;
+import org.languagetool.rules.inflection.InflectionParser;
 import org.languagetool.rules.patterns.AbstractPatternRule;
+import org.languagetool.rules.patterns.DependencyBasedRuleLoader;
 import org.languagetool.rules.patterns.PatternRuleLoader;
 import org.languagetool.rules.patterns.Unifier;
 import org.languagetool.rules.patterns.UnifierConfiguration;
@@ -37,11 +41,14 @@ import org.languagetool.synthesis.Synthesizer;
 import org.languagetool.tagging.Tagger;
 import org.languagetool.tagging.disambiguation.Disambiguator;
 import org.languagetool.tagging.disambiguation.xx.DemoDisambiguator;
+import org.languagetool.tagging.postprocessor.TaggingPostProcessor;
+import org.languagetool.tagging.postprocessor.impl.DependencyParsingTaggingPostProcessor;
 import org.languagetool.tagging.xx.DemoTagger;
 import org.languagetool.tokenizers.SentenceTokenizer;
 import org.languagetool.tokenizers.SimpleSentenceTokenizer;
 import org.languagetool.tokenizers.Tokenizer;
 import org.languagetool.tokenizers.WordTokenizer;
+import org.languagetool.tools.config.ConfigService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,8 +59,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.util.regex.Pattern.*;
+import static org.languagetool.constans.LanguageToolConstants.Config.DEPENDENCY_PARSING_TOGGLE;
 
 /**
  * Base class for any supported language (English, German, etc). Language classes
@@ -96,10 +106,12 @@ public abstract class Language {
 
   private final UnifierConfiguration unifierConfig = new UnifierConfiguration();
   private final UnifierConfiguration disambiguationUnifierConfig = new UnifierConfiguration();
+//  private final ConfigService configService = new ConfigService();
 
   private final Pattern ignoredCharactersRegex = compile("[\u00AD]");  // soft hyphen
   
   private List<AbstractPatternRule> patternRules;
+  private List<DependencyBasedRule> dependencyBasedRules;
   private final AtomicBoolean noLmWarningPrinted = new AtomicBoolean();
 
   private Disambiguator disambiguator;
@@ -888,7 +900,10 @@ public abstract class Language {
   public boolean isAdvancedTypographyEnabled() {
     return false;
   }
-  
+
+  public boolean isDependencyParsingEnabled() {
+    return Boolean.parseBoolean(new ConfigService().getProperty(DEPENDENCY_PARSING_TOGGLE, "false"));
+  }
   /** @since 5.1 */
   public String toAdvancedTypography(String input) {
     if (!isAdvancedTypographyEnabled()) {
@@ -1024,4 +1039,56 @@ public abstract class Language {
     return new HashMap<>();
   }
 
+  public List<TaggingPostProcessor> getTaggingPostProcessors() {
+
+    return Stream.of(getDependencyParsingPostProcessor())
+      .filter(Optional::isPresent)
+      .map(Optional::get)
+      .collect(Collectors.toList());
+  }
+
+  public List<String> getDependencyBasedRuleFileNames() {
+
+    return Collections.emptyList();
+  }
+
+  public Map<String, Pattern> getInflectionToRegexMap() {
+
+    return Collections.emptyMap();
+  }
+
+  public List<DependencyBasedRule> getDependencyBasedRules() {
+
+    InflectionParser inflectionParser = new InflectionParser(getInflectionToRegexMap());
+
+    if (dependencyBasedRules == null) {
+
+      DependencyBasedRuleLoader ruleLoader = new DependencyBasedRuleLoader();
+
+      this.dependencyBasedRules = getDependencyBasedRuleFileNames()
+        .stream()
+        .map(fileName -> {
+          try (InputStream is = JLanguageTool.getDataBroker().getAsStream(fileName)) {
+              try {
+                  return ruleLoader.getRules(is, fileName, this, inflectionParser, synthesizer);
+              } catch (IOException e) {
+                  throw new RuntimeException(e);
+              }
+          } catch (IOException e) {
+              throw new RuntimeException(e);
+          }
+        })
+        .flatMap(Collection::stream)
+        .collect(Collectors.toList());
+    }
+
+    return dependencyBasedRules;
+  }
+
+  private Optional<TaggingPostProcessor> getDependencyParsingPostProcessor() {
+
+    return isDependencyParsingEnabled()
+      ? Optional.of(new DependencyParsingTaggingPostProcessor())
+      : Optional.empty();
+  }
 }
